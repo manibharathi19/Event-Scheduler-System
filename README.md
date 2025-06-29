@@ -24,6 +24,7 @@ A comprehensive full-stack event scheduling application with REST API backend an
 ## 🛠 Technology Stack
 
 ### Backend
+"I used Node.js for the backend instead of Python because the Google Form for the Azure intern role mentioned that I could choose any language. So, I chose Node.js. I have also completed the frontend part."
 - **Node.js** with Express.js
 - **RESTful API** design
 - **File-based JSON storage**
