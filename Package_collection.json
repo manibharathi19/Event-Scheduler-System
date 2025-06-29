@@ -1,0 +1,988 @@
+{
+  "info": {
+    "name": "Event Scheduler API",
+    "description": "Complete API collection for the Event Scheduler System with full CRUD operations, search, reminders, and recurring events support.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set base URL if not already set",
+          "if (!pm.environment.get('baseUrl')) {",
+          "    pm.environment.set('baseUrl', 'http://localhost:3001/api');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has status OK', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql('OK');",
+              "});",
+              "",
+              "pm.test('Response has timestamp', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.timestamp).to.exist;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check if the API server is running and healthy"
+      },
+      "response": [
+        {
+          "name": "Health Check Success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"status\": \"OK\",\n    \"timestamp\": \"2024-01-15T10:30:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Get All Events",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Events are sorted by start time', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 1) {",
+                  "        for (let i = 1; i < jsonData.length; i++) {",
+                  "            const prevTime = new Date(jsonData[i-1].startTime);",
+                  "            const currTime = new Date(jsonData[i].startTime);",
+                  "            pm.expect(prevTime.getTime()).to.be.at.most(currTime.getTime());",
+                  "        }",
+                  "    }",
+                  "});",
+                  "",
+                  "// Store first event ID for other requests",
+                  "if (pm.response.json().length > 0) {",
+                  "    pm.environment.set('eventId', pm.response.json()[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Retrieve all events sorted by start time (earliest first)"
+          },
+          "response": [
+            {
+              "name": "Get All Events Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": \"event_123\",\n        \"title\": \"Team Meeting\",\n        \"description\": \"Weekly team standup meeting\",\n        \"startTime\": \"2024-01-20T10:00:00.000Z\",\n        \"endTime\": \"2024-01-20T11:00:00.000Z\",\n        \"recurrence\": \"weekly\",\n        \"createdAt\": \"2024-01-15T08:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T08:00:00.000Z\"\n    },\n    {\n        \"id\": \"event_456\",\n        \"title\": \"Client Presentation\",\n        \"description\": \"Quarterly business review presentation\",\n        \"startTime\": \"2024-01-25T14:00:00.000Z\",\n        \"endTime\": \"2024-01-25T15:30:00.000Z\",\n        \"recurrence\": \"none\",\n        \"createdAt\": \"2024-01-15T09:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T09:00:00.000Z\"\n    }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Event created successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.exist;",
+                  "    pm.expect(jsonData.title).to.exist;",
+                  "    pm.expect(jsonData.description).to.exist;",
+                  "    pm.expect(jsonData.startTime).to.exist;",
+                  "    pm.expect(jsonData.endTime).to.exist;",
+                  "    pm.expect(jsonData.createdAt).to.exist;",
+                  "    pm.expect(jsonData.updatedAt).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Created event has correct data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const requestData = JSON.parse(pm.request.body.raw);",
+                  "    pm.expect(jsonData.title).to.eql(requestData.title);",
+                  "    pm.expect(jsonData.description).to.eql(requestData.description);",
+                  "    pm.expect(jsonData.recurrence).to.eql(requestData.recurrence);",
+                  "});",
+                  "",
+                  "// Store created event ID",
+                  "pm.environment.set('createdEventId', pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Team Meeting\",\n    \"description\": \"Weekly team standup meeting to discuss progress and blockers\",\n    \"startTime\": \"2024-01-20T10:00:00.000Z\",\n    \"endTime\": \"2024-01-20T11:00:00.000Z\",\n    \"recurrence\": \"weekly\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Create a new event with optional recurrence"
+          },
+          "response": [
+            {
+              "name": "Create Event Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Team Meeting\",\n    \"description\": \"Weekly team standup meeting\",\n    \"startTime\": \"2024-01-20T10:00:00.000Z\",\n    \"endTime\": \"2024-01-20T11:00:00.000Z\",\n    \"recurrence\": \"weekly\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": \"event_789\",\n    \"title\": \"Team Meeting\",\n    \"description\": \"Weekly team standup meeting\",\n    \"startTime\": \"2024-01-20T10:00:00.000Z\",\n    \"endTime\": \"2024-01-20T11:00:00.000Z\",\n    \"recurrence\": \"weekly\",\n    \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n    \"updatedAt\": \"2024-01-15T10:30:00.000Z\"\n}"
+            },
+            {
+              "name": "Create Event - Validation Error",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"\",\n    \"description\": \"Missing title\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"error\": \"Missing required fields\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Single Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Event details returned', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.exist;",
+                  "    pm.expect(jsonData.title).to.exist;",
+                  "    pm.expect(jsonData.description).to.exist;",
+                  "    pm.expect(jsonData.startTime).to.exist;",
+                  "    pm.expect(jsonData.endTime).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            },
+            "description": "Get details of a specific event by ID"
+          },
+          "response": [
+            {
+              "name": "Get Single Event Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/event_123",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "event_123"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": \"event_123\",\n    \"title\": \"Team Meeting\",\n    \"description\": \"Weekly team standup meeting\",\n    \"startTime\": \"2024-01-20T10:00:00.000Z\",\n    \"endTime\": \"2024-01-20T11:00:00.000Z\",\n    \"recurrence\": \"weekly\",\n    \"createdAt\": \"2024-01-15T08:00:00.000Z\",\n    \"updatedAt\": \"2024-01-15T08:00:00.000Z\"\n}"
+            },
+            {
+              "name": "Get Single Event - Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/nonexistent",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "nonexistent"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"error\": \"Event not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Event updated successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.updatedAt).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Updated event has correct data', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const requestData = JSON.parse(pm.request.body.raw);",
+                  "    pm.expect(jsonData.title).to.eql(requestData.title);",
+                  "    pm.expect(jsonData.description).to.eql(requestData.description);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Updated Team Meeting\",\n    \"description\": \"Updated weekly team standup meeting with new agenda\",\n    \"startTime\": \"2024-01-20T14:00:00.000Z\",\n    \"endTime\": \"2024-01-20T15:00:00.000Z\",\n    \"recurrence\": \"monthly\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{createdEventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{createdEventId}}"]
+            },
+            "description": "Update an existing event"
+          },
+          "response": [
+            {
+              "name": "Update Event Success",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Updated Meeting\",\n    \"description\": \"Updated description\",\n    \"startTime\": \"2024-01-20T14:00:00.000Z\",\n    \"endTime\": \"2024-01-20T15:00:00.000Z\",\n    \"recurrence\": \"monthly\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events/event_123",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "event_123"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": \"event_123\",\n    \"title\": \"Updated Meeting\",\n    \"description\": \"Updated description\",\n    \"startTime\": \"2024-01-20T14:00:00.000Z\",\n    \"endTime\": \"2024-01-20T15:00:00.000Z\",\n    \"recurrence\": \"monthly\",\n    \"createdAt\": \"2024-01-15T08:00:00.000Z\",\n    \"updatedAt\": \"2024-01-15T10:45:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Event deleted successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.exist;",
+                  "    pm.expect(jsonData.event).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{createdEventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{createdEventId}}"]
+            },
+            "description": "Delete an event by ID"
+          },
+          "response": [
+            {
+              "name": "Delete Event Success",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/event_123",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "event_123"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Event deleted successfully\",\n    \"event\": {\n        \"id\": \"event_123\",\n        \"title\": \"Team Meeting\",\n        \"description\": \"Weekly team standup meeting\",\n        \"startTime\": \"2024-01-20T10:00:00.000Z\",\n        \"endTime\": \"2024-01-20T11:00:00.000Z\",\n        \"recurrence\": \"weekly\",\n        \"createdAt\": \"2024-01-15T08:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T08:00:00.000Z\"\n    }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "CRUD operations for events"
+    },
+    {
+      "name": "Search & Filters",
+      "item": [
+        {
+          "name": "Search Events",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Search results contain query term', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const query = pm.request.url.query.get('q').toLowerCase();",
+                  "    ",
+                  "    jsonData.forEach(event => {",
+                  "        const titleMatch = event.title.toLowerCase().includes(query);",
+                  "        const descMatch = event.description.toLowerCase().includes(query);",
+                  "        pm.expect(titleMatch || descMatch).to.be.true;",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/search?q=meeting",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "meeting",
+                  "description": "Search query for title or description"
+                }
+              ]
+            },
+            "description": "Search events by title or description"
+          },
+          "response": [
+            {
+              "name": "Search Events Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/search?q=meeting",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "search"],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "meeting"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": \"event_123\",\n        \"title\": \"Team Meeting\",\n        \"description\": \"Weekly team standup meeting\",\n        \"startTime\": \"2024-01-20T10:00:00.000Z\",\n        \"endTime\": \"2024-01-20T11:00:00.000Z\",\n        \"recurrence\": \"weekly\",\n        \"createdAt\": \"2024-01-15T08:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T08:00:00.000Z\"\n    }\n]"
+            },
+            {
+              "name": "Search Events - No Query",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/search",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "search"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"error\": \"Search query is required\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Reminders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('All reminders are within next hour', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const now = new Date();",
+                  "    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);",
+                  "    ",
+                  "    jsonData.forEach(event => {",
+                  "        const eventStart = new Date(event.startTime);",
+                  "        pm.expect(eventStart.getTime()).to.be.at.least(now.getTime());",
+                  "        pm.expect(eventStart.getTime()).to.be.at.most(oneHourLater.getTime());",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/reminders",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "reminders"]
+            },
+            "description": "Get events starting within the next hour"
+          },
+          "response": [
+            {
+              "name": "Get Reminders Success",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/reminders",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "reminders"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": \"event_456\",\n        \"title\": \"Client Call\",\n        \"description\": \"Important client discussion\",\n        \"startTime\": \"2024-01-15T11:15:00.000Z\",\n        \"endTime\": \"2024-01-15T12:00:00.000Z\",\n        \"recurrence\": \"none\",\n        \"createdAt\": \"2024-01-15T09:00:00.000Z\",\n        \"updatedAt\": \"2024-01-15T09:00:00.000Z\"\n    }\n]"
+            }
+          ]
+        }
+      ],
+      "description": "Search and filter operations"
+    },
+    {
+      "name": "Recurring Events Examples",
+      "item": [
+        {
+          "name": "Create Daily Recurring Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Event has daily recurrence', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.recurrence).to.eql('daily');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Daily Standup\",\n    \"description\": \"Daily team standup meeting\",\n    \"startTime\": \"2024-01-22T09:00:00.000Z\",\n    \"endTime\": \"2024-01-22T09:30:00.000Z\",\n    \"recurrence\": \"daily\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Create an event that repeats daily"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Weekly Recurring Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Event has weekly recurrence', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.recurrence).to.eql('weekly');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Weekly Review\",\n    \"description\": \"Weekly project review and planning session\",\n    \"startTime\": \"2024-01-26T15:00:00.000Z\",\n    \"endTime\": \"2024-01-26T16:00:00.000Z\",\n    \"recurrence\": \"weekly\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Create an event that repeats weekly"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Monthly Recurring Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Event has monthly recurrence', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.recurrence).to.eql('monthly');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Monthly All-Hands\",\n    \"description\": \"Monthly company-wide meeting\",\n    \"startTime\": \"2024-02-01T10:00:00.000Z\",\n    \"endTime\": \"2024-02-01T11:30:00.000Z\",\n    \"recurrence\": \"monthly\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Create an event that repeats monthly"
+          },
+          "response": []
+        }
+      ],
+      "description": "Examples of creating recurring events"
+    },
+    {
+      "name": "Test Scenarios",
+      "item": [
+        {
+          "name": "Bulk Create Test Events",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate test events with different dates and types",
+                  "const events = [",
+                  "    {",
+                  "        title: 'Project Kickoff',",
+                  "        description: 'Initial project planning meeting',",
+                  "        startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now",
+                  "        endTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now",
+                  "        recurrence: 'none'",
+                  "    },",
+                  "    {",
+                  "        title: 'Code Review',",
+                  "        description: 'Weekly code review session',",
+                  "        startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day from now",
+                  "        endTime: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString(), // 1 day + 1 hour from now",
+                  "        recurrence: 'weekly'",
+                  "    },",
+                  "    {",
+                  "        title: 'Sprint Planning',",
+                  "        description: 'Bi-weekly sprint planning session',",
+                  "        startTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week from now",
+                  "        endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(), // 1 week + 2 hours from now",
+                  "        recurrence: 'none'",
+                  "    }",
+                  "];",
+                  "",
+                  "pm.environment.set('testEvents', JSON.stringify(events));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('All test events created successfully', function () {",
+                  "    // This is a placeholder test for bulk creation",
+                  "    // In practice, you'd run this multiple times or use a runner",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Test Event\",\n    \"description\": \"This is a test event for demonstration\",\n    \"startTime\": \"{{$isoTimestamp}}\",\n    \"endTime\": \"{{$isoTimestamp}}\",\n    \"recurrence\": \"none\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            },
+            "description": "Create multiple test events for demonstration"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Error Scenarios",
+          "item": [
+            {
+              "name": "Invalid Date Range",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Error message about date range', function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.error).to.include('End time must be after start time');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Invalid Event\",\n    \"description\": \"Event with invalid date range\",\n    \"startTime\": \"2024-01-20T15:00:00.000Z\",\n    \"endTime\": \"2024-01-20T14:00:00.000Z\",\n    \"recurrence\": \"none\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                },
+                "description": "Test validation for invalid date range"
+              },
+              "response": []
+            },
+            {
+              "name": "Missing Required Fields",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 400', function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "",
+                      "pm.test('Error message about missing fields', function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.error).to.include('Missing required fields');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"\",\n    \"description\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                },
+                "description": "Test validation for missing required fields"
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "description": "Test scenarios and edge cases"
+    }
+  ]
+}
